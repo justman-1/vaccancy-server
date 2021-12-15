@@ -1,5 +1,6 @@
 const db = require('../db/index')
 const TokenService = require('../services/token-service')
+const Validator = require('./validator')
 
 class Auth{
 
@@ -9,8 +10,12 @@ class Auth{
     }
 
     checkTokens(req, res, next){
-        const accessToken = req.headers.access_token
         const refreshToken = req.headers.refresh_token
+        const accessToken = req.headers.access_token
+        var err = Validator.validateTokens(refreshToken, accessToken)
+        
+        if(err) return res.status(401).send('No tokens')
+
         var [err, docs] = TokenService.checkTokenValid(accessToken)//check accessToken
 
         if(err) this.checkRefreshToken(req, res, next, refreshToken)
@@ -24,12 +29,13 @@ class Auth{
     async checkRefreshToken(req, res, next, token){
         var [err, docs] = TokenService.checkTokenValid(token)//check refreshToken
 
-        if(err) return res.status(401).send('Invalid tokens')
+        if(err) console.log(err)
         else{
             const id = docs.id
             const accessToken = TokenService.generateAccessToken(id)
             const conn = await db.connectionPromise()
             await conn.query(`UPDATE users SET accessToken = "${accessToken}" WHERE id = "${id}"`)
+            req.id = id
             req.refreshToken = token
             req.accessToken = accessToken
             next()

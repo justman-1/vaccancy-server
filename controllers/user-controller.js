@@ -1,10 +1,13 @@
 const db = require('../db/index').connection
 const jwt = require('jsonwebtoken')
+const multer = require('multer')
 const random = require('random-string-generator')
 const key = process.env.SECRET
 const hash = require('../services/crypto')
 const UserService = require('../services/user-service')
 const TokenService = require('../services/token-service')
+const Multer = require('../multer/index')
+const uploadPhoto = multer({storage: Multer.photoStorage}).single("photo")
 
 class User{
 
@@ -54,6 +57,25 @@ class User{
         }catch(err){
             res.status(err.status).send(err.text)
         }
+    }
+
+    async saveResume(req, res){
+        const data = req.data
+        const id = req.id
+        try{
+            const result = await UserService.saveResume(data, id)
+            res.send(result)
+        }catch(err){
+            res.status(err.status).send(err.text)
+        }
+    }
+
+    saveImage(req, res){
+        uploadPhoto(req, res, (err)=>{
+            if(err) return res.status(500).send('Ошибка загрузки фото на сервер')
+
+            return res.send('ok')
+        })
     }
 
 }

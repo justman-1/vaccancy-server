@@ -10,6 +10,6 @@ const server = require('http').createServer(app).listen(5000)
 app.use(cors({
     origin: '*'
 }))
-app.use(bodyParser.urlencoded({ extended: false }))
-app.use(bodyParser.json())
+app.use(bodyParser.urlencoded({ extended: false, limit: "5mb" }))
+app.use(bodyParser.json({ limit: "5mb" }))
 app.use('/', router)

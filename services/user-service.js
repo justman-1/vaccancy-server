@@ -1,3 +1,4 @@
+const fs = require('fs')
 const db = require('../db/index')
 const jwt = require('jsonwebtoken')
 const random = require('random-string-generator')
@@ -5,6 +6,7 @@ const key = process.env.SECRET
 const hash = require('./crypto')
 const ErrorApi = require('./error-service')
 const TokenService = require('./token-service')
+const uuid = require('uuid')
 
 class UserService{
 
@@ -43,16 +45,16 @@ class UserService{
 
     async signin(email, password){
         if(email.replace(/\s/g, '') == '' || password.replace(/\s/g, '') == ''){
-            throw new ErrorApi(402, 'Заполните все поля')
+            throw new ErrorApi(410, 'Заполните все поля')
         }
         const conn = await db.connectionPromise()
         var [docs] = await conn.execute(`SELECT password, accessToken, refreshToken, id FROM users WHERE email = "${email}"`)
 
         if(docs.length == 0){
-            throw new ErrorApi(402, 'Нет пользователей с такой почтой')
+            throw new ErrorApi(410, 'Нет пользователей с такой почтой')
         }
         else if(docs[0].password != password){
-            throw new ErrorApi(402, 'Неправильный пароль')
+            throw new ErrorApi(410, 'Неправильный пароль')
         }
         else if(docs[0].password == password){
             var [err1, results1] = TokenService.checkTokenValid(docs[0].refreshToken)//check refreshToken
@@ -80,6 +82,9 @@ class UserService{
         if(docs == undefined){
             throw new ErrorApi(500, 'Ошибка сервера')
         }
+        else if(docs.length == 0){
+            throw new ErrorApi(401, 'Нет пользователей с таким ID')
+        }
         else if(docs.length != 0 && docs[0].photo == null){
             return({
                 content: 'null',
@@ -87,23 +92,55 @@ class UserService{
             })
         }
         else if(docs.length != 0 && docs[0].photo != null){
-
+            
         }
     }
 
     async getProfileSmallInfo(id){
         const conn = await db.connectionPromise()
-        const [docs] = await conn.query(`SELECT photo, login FROM users WHERE id = "${id}"`)
-        if(docs != undefined || docs.length != 0){
-            var photo = docs[0].photo
+        const [docs] = await conn.query(`SELECT photo, login, resume, vacancies FROM users WHERE id = "${id}"`)
+        if(docs != undefined && docs.length != 0){
             return {
                 login: docs[0].login,
-                photo: photo
+                photo: docs[0].photo,
+                resume: docs[0].resume,
+                vacancies: docs[0].vacancies,
             }
         }
         else{
             throw new ErrorApi(410, 'Нет пользователей с таким ID')
         }
+    }
+
+    async saveResume(data, id){
+        try{
+            const photoName = uuid.v4() + data.photo
+            const conn = await db.connectionPromise()
+            const [vacancy] = await conn.query(`SELECT photo FROM resumes WHERE id = "${id}"`)
+
+            if(vacancy.length > 0){
+                console.log(vacancy[0].photo)
+                fs.unlink('photoes/' + vacancy[0].photo, ()=>{})
+                await conn.query(`UPDATE resumes SET position = "${data.position}", FIO = "${data.FIO}",
+                born = "${data.born}", city = "${data.city}", contacts = "${data.contacts}", 
+                experience = "${data.experience}", education = "${data.education}", languages = "${data.languages}",  
+                skills = "${data.skills}", description = "${data.description}", photo = "${photoName}" WHERE id = "${id}"`)
+                return {
+                    photoName: photoName
+                }
+            }
+            await conn.query(`INSERT INTO resumes (position, FIO, born, city, contacts, experience, education, 
+                languages, skills, description, photo, id) VALUES("${data.position}", "${data.FIO}", 
+                "${data.born}", "${data.city}", "${data.contacts}", "${data.experience}", "${data.education}", "${data.languages}", 
+                "${data.skills}", "${data.description}", "${photoName}", "${id}")`)
+            return {
+                photoName: photoName
+            }
+        }catch(err){
+            console.log(err)
+            throw new ErrorApi(500, 'Ошибка сервера')
+        }
+        
     }
 
 }
