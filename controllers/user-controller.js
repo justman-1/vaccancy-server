@@ -1,6 +1,7 @@
 const db = require('../db/index').connection
 const jwt = require('jsonwebtoken')
 const multer = require('multer')
+const fs = require('fs')
 const random = require('random-string-generator')
 const key = process.env.SECRET
 const hash = require('../services/crypto')
@@ -76,6 +77,12 @@ class User{
 
             return res.send('ok')
         })
+    }
+
+    getImage(req, res){
+        const photoName = req.params.name
+        const stream = fs.createReadStream('photoes/' + photoName)
+        stream.pipe(res)
     }
 
 }

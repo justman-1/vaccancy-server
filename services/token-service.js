@@ -3,6 +3,16 @@ const random = require('random-string-generator')
 
 class Token{
 
+    generateAccessToken(id){
+        const token = jwt.sign({ id: id, random: random(10, 'alphanumeric') }, process.env.SECRET, {expiresIn: '10m'})
+        return token
+    }
+
+    generateRefreshToken(id){
+        const token = jwt.sign({ id: id, random: random(10, 'alphanumeric') }, process.env.SECRET, {expiresIn: '30d'})
+        return token
+    }
+
     checkTokenValid(token){
         let response;
         jwt.verify(token, process.env.SECRET, (err, docs)=>{
@@ -14,14 +24,14 @@ class Token{
         return response
     }
 
-    generateAccessToken(id){
-        const token = jwt.sign({ id: id, random: random(10, 'alphanumeric') }, process.env.SECRET, {expiresIn: '10m'})
-        return token
-    }
-
-    generateRefreshToken(id){
-        const token = jwt.sign({ id: id, random: random(10, 'alphanumeric') }, process.env.SECRET, {expiresIn: '30d'})
-        return token
+    validateTokens(refreshToken, accessToken){
+        if(refreshToken == undefined ||
+           refreshToken == null ||
+           accessToken == undefined ||
+           accessToken == null){
+               return 'No token'
+        }
+        return null
     }
 
 }

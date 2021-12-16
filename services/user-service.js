@@ -11,35 +11,25 @@ const uuid = require('uuid')
 class UserService{
 
     async register(login, email, password){
-        if(login.replace(/\s/g, '') != '' && password.replace(/\s/g, '') != '' && email.replace(/\s/g, '') != ''){
-            if(email.slice(-10) == '@gmail.com'){
-                const conn = await db.connectionPromise()
-                var [docs] = await conn.query(`SELECT email FROM users WHERE email = "${email}"`)
+        const conn = await db.connectionPromise()
+        var [docs] = await conn.query(`SELECT email FROM users WHERE email = "${email}"`)
 
-                if(docs.length == 0){
-                    const id = random(20, 'alphanumeric')
-                    const refreshToken = TokenService.generateRefreshToken(id)
-                    const accessToken = TokenService.generateAccessToken(id)
-                    var password = hash(password)
-                    const results = await conn.query(`INSERT INTO users 
-                    (login, email, id, password, accessToken, refreshToken) 
-                    VALUES(?, ?, ?, ?, ?, ?)`, [login, email, id, password, accessToken, refreshToken])
-                    return({
-                        accessToken: accessToken,
-                        refreshToken: refreshToken,
-                        id: id
-                    })
-                }
-                else{
-                    throw new ErrorApi(410, 'Эта почта уже занята')
-                }
-            }
-            else{
-                throw new ErrorApi(410, 'Почта должна заканчиваться на @gmail.com')
-            }
+        if(docs.length == 0){
+            const id = random(20, 'alphanumeric')
+            const refreshToken = TokenService.generateRefreshToken(id)
+            const accessToken = TokenService.generateAccessToken(id)
+            var password = hash(password)
+            const results = await conn.query(`INSERT INTO users 
+            (login, email, id, password, accessToken, refreshToken) 
+            VALUES(?, ?, ?, ?, ?, ?)`, [login, email, id, password, accessToken, refreshToken])
+            return({
+                accessToken: accessToken,
+                refreshToken: refreshToken,
+                id: id
+            })
         }
         else{
-            throw new ErrorApi(410, 'Заполните все поля')
+            throw new ErrorApi(410, 'Эта почта уже занята')
         }
     }
 
@@ -98,13 +88,18 @@ class UserService{
 
     async getProfileSmallInfo(id){
         const conn = await db.connectionPromise()
-        const [docs] = await conn.query(`SELECT photo, login, resume, vacancies FROM users WHERE id = "${id}"`)
-        if(docs != undefined && docs.length != 0){
+        const [user] = await conn.query(`SELECT photo, login, resume, vacancies FROM users WHERE id = "${id}"`)
+        if(user != undefined && user.length != 0){
+            var resume = null
+            if(user[0].resume){
+                const [resumeInfo] = await conn.query(`SELECT * FROM resumes WHERE id = "${id}"`)
+                if(resumeInfo.length != 0) resume = resumeInfo[0]
+            }
             return {
-                login: docs[0].login,
-                photo: docs[0].photo,
-                resume: docs[0].resume,
-                vacancies: docs[0].vacancies,
+                login: user[0].login,
+                photo: user[0].photo,
+                resume: resume,
+                vacancies: user[0].vacancies,
             }
         }
         else{
@@ -119,7 +114,6 @@ class UserService{
             const [vacancy] = await conn.query(`SELECT photo FROM resumes WHERE id = "${id}"`)
 
             if(vacancy.length > 0){
-                console.log(vacancy[0].photo)
                 fs.unlink('photoes/' + vacancy[0].photo, ()=>{})
                 await conn.query(`UPDATE resumes SET position = "${data.position}", FIO = "${data.FIO}",
                 born = "${data.born}", city = "${data.city}", contacts = "${data.contacts}", 
@@ -129,6 +123,7 @@ class UserService{
                     photoName: photoName
                 }
             }
+            await conn.query(`UPDATE user SET resume = "true" WHERE id ="${id}"`)
             await conn.query(`INSERT INTO resumes (position, FIO, born, city, contacts, experience, education, 
                 languages, skills, description, photo, id) VALUES("${data.position}", "${data.FIO}", 
                 "${data.born}", "${data.city}", "${data.contacts}", "${data.experience}", "${data.education}", "${data.languages}", 

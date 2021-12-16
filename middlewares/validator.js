@@ -34,14 +34,20 @@ class Validator{
         next()
     }
 
-    validateTokens(refreshToken, accessToken){
-        if(refreshToken == undefined ||
-           refreshToken == null ||
-           accessToken == undefined ||
-           accessToken == null){
-               return 'No token'
+    registerValidate(req, res, next){
+        const data = req.body
+        const login = data.login
+        const password = data.password
+        const email = data.email
+        if(login.replace(/\s/g, '') == '' || password.replace(/\s/g, '') == '' || email.replace(/\s/g, '') == ''){
+            res.status(410).send('Заполните все поля')
         }
-        return null
+        else if(email.slice(-10) != '@gmail.com'){
+            res.status(410).send('Почта должна заканчиваться на @gmail.com')
+        }
+        else{
+            next()
+        }
     }
 
 }
