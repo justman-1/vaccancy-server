@@ -86,7 +86,7 @@ class UserService{
         }
     }
 
-    async getProfileSmallInfo(id){
+    async getProfileInfo(id){
         const conn = await db.connectionPromise()
         const [user] = await conn.query(`SELECT photo, login, resume, vacancies FROM users WHERE id = "${id}"`)
         if(user != undefined && user.length != 0){
@@ -115,6 +115,7 @@ class UserService{
 
             if(vacancy.length > 0){
                 fs.unlink('photoes/' + vacancy[0].photo, ()=>{})
+                await conn.query(`UPDATE users SET resume = "true" WHERE id ="${id}"`)
                 await conn.query(`UPDATE resumes SET position = "${data.position}", FIO = "${data.FIO}",
                 born = "${data.born}", city = "${data.city}", contacts = "${data.contacts}", 
                 experience = "${data.experience}", education = "${data.education}", languages = "${data.languages}",  
@@ -123,7 +124,7 @@ class UserService{
                     photoName: photoName
                 }
             }
-            await conn.query(`UPDATE user SET resume = "true" WHERE id ="${id}"`)
+            await conn.query(`UPDATE users SET resume = "true" WHERE id ="${id}"`)
             await conn.query(`INSERT INTO resumes (position, FIO, born, city, contacts, experience, education, 
                 languages, skills, description, photo, id) VALUES("${data.position}", "${data.FIO}", 
                 "${data.born}", "${data.city}", "${data.contacts}", "${data.experience}", "${data.education}", "${data.languages}", 

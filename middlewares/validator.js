@@ -13,16 +13,19 @@ class Validator{
             const data = req.query
             this.validateFunc(req, res, next, data)
         }
-        else if(req.body != undefined && req.body != null && JSON.stringify(req.body) != {}){
+        else if(req.body != undefined && req.body != null && JSON.stringify(req.body) != '{}'){
             const data = req.body
             this.validateFunc(req, res, next, data)
+        }
+        else if(JSON.stringify(req.body) == '[]' || JSON.stringify(req.query) == '[]'){
+            res.status(410).send('Данные не передались')
         }
     }
 
     validateFunc(req, res, next, data){
         var err = null
         for(let prop in data){
-            if(data[prop].replace(/\s/g, '') == '' || data[prop].replace(/\s/g, '') == null){
+            if(data[prop] == null || data[prop].replace(/\s/g, '') == ''){
                 err = true
             }
             

@@ -16,11 +16,10 @@ class Auth{
         if(err) return res.status(401).send('No tokens')
 
         var [err, docs] = TokenService.checkTokenValid(accessToken)//check accessToken
-        console.log(err)
-        console.log(docs)
 
         if(err) this.checkRefreshToken(req, res, next, refreshToken)
         else{
+            req.id = docs.id
             req.refreshToken = refreshToken
             req.accessToken = accessToken
             next()

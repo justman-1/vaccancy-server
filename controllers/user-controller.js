@@ -7,6 +7,7 @@ const key = process.env.SECRET
 const hash = require('../services/crypto')
 const UserService = require('../services/user-service')
 const TokenService = require('../services/token-service')
+const Validator = require('../middlewares/validator')
 const Multer = require('../multer/index')
 const uploadPhoto = multer({storage: Multer.photoStorage}).single("photo")
 
@@ -41,7 +42,7 @@ class User{
                 var [err, results] = TokenService.checkTokenValid(req.headers.access_token)
                 if(err) [err, results] = TokenService.checkTokenValid(req.headers.refresh_token)
                 if(err) return res.status(401).send('Invalid tokens')
-                id = results.id
+                var id = results.id
             }
             const result = await UserService.getPhoto(id)
             res.send(result)
@@ -50,10 +51,10 @@ class User{
         }
     }
 
-    async getProfileSmallInfo(req, res){
+    async getProfileInfo(req, res){
         const id = req.query.id
         try{
-            const docs = await UserService.getProfileSmallInfo(id)
+            const docs = await UserService.getProfileInfo(id)
             res.send(docs)
         }catch(err){
             res.status(err.status).send(err.text)
@@ -65,7 +66,7 @@ class User{
         const id = req.id
         try{
             const result = await UserService.saveResume(data, id)
-            res.send(result)
+            res.send({...result, accessToken: req.accessToken, refreshToken: req.refreshToken})
         }catch(err){
             res.status(err.status).send(err.text)
         }
