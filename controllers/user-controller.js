@@ -1,15 +1,6 @@
-const db = require('../db/index').connection
-const jwt = require('jsonwebtoken')
-const multer = require('multer')
-const fs = require('fs')
-const random = require('random-string-generator')
-const key = process.env.SECRET
 const hash = require('../services/crypto')
 const UserService = require('../services/user-service')
-const TokenService = require('../services/token-service')
-const Validator = require('../middlewares/validator')
 const Multer = require('../multer/index')
-const uploadPhoto = multer({storage: Multer.photoStorage}).single("photo")
 
 class User{
 
@@ -35,57 +26,5 @@ class User{
         }
     }
 
-    async getPhoto(req, res){
-        var id = req.query.id
-        try{
-            if(id == 'my_id'){
-                var [err, results] = TokenService.checkTokenValid(req.headers.access_token)
-                if(err) [err, results] = TokenService.checkTokenValid(req.headers.refresh_token)
-                if(err) return res.status(401).send('Invalid tokens')
-                var id = results.id
-            }
-            const result = await UserService.getPhoto(id)
-            res.send(result)
-        } catch(err){
-            res.status(err.status).send(err.text)
-        }
-    }
-
-    async getProfileInfo(req, res){
-        const id = req.query.id
-        try{
-            const docs = await UserService.getProfileInfo(id)
-            res.send(docs)
-        }catch(err){
-            res.status(err.status).send(err.text)
-        }
-    }
-
-    async saveResume(req, res){
-        const data = req.data
-        const id = req.id
-        try{
-            const result = await UserService.saveResume(data, id)
-            res.send({...result, accessToken: req.accessToken, refreshToken: req.refreshToken})
-        }catch(err){
-            res.status(err.status).send(err.text)
-        }
-    }
-
-    saveImage(req, res){
-        uploadPhoto(req, res, (err)=>{
-            if(err) return res.status(500).send('Ошибка загрузки фото на сервер')
-
-            return res.send('ok')
-        })
-    }
-
-    getImage(req, res){
-        const photoName = req.params.name
-        const stream = fs.createReadStream('photoes/' + photoName)
-        stream.pipe(res)
-    }
-
 }
-
 module.exports = new User()

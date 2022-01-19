@@ -6,6 +6,7 @@ const key = process.env.SECRET
 const hash = require('./crypto')
 const ErrorApi = require('./error-service')
 const TokenService = require('./token-service')
+const CacheService = require('./cache-service')
 const uuid = require('uuid')
 
 class UserService{
@@ -63,80 +64,6 @@ class UserService{
                 id: docs[0].id
             })
         }
-    }
-
-    async getPhoto(id){
-        const conn = await db.connectionPromise()
-        var [docs] = await conn.query(`SELECT photo FROM users WHERE id = "${id}"`)
-        
-        if(docs == undefined){
-            throw new ErrorApi(500, 'Ошибка сервера')
-        }
-        else if(docs.length == 0){
-            throw new ErrorApi(401, 'Нет пользователей с таким ID')
-        }
-        else if(docs.length != 0 && docs[0].photo == null){
-            return({
-                content: 'null',
-                id: id
-            })
-        }
-        else if(docs.length != 0 && docs[0].photo != null){
-            
-        }
-    }
-
-    async getProfileInfo(id){
-        const conn = await db.connectionPromise()
-        const [user] = await conn.query(`SELECT photo, login, resume, vacancies FROM users WHERE id = "${id}"`)
-        if(user != undefined && user.length != 0){
-            var resume = null
-            if(user[0].resume){
-                const [resumeInfo] = await conn.query(`SELECT * FROM resumes WHERE id = "${id}"`)
-                if(resumeInfo.length != 0) resume = resumeInfo[0]
-            }
-            return {
-                login: user[0].login,
-                photo: user[0].photo,
-                resume: resume,
-                vacancies: user[0].vacancies,
-            }
-        }
-        else{
-            throw new ErrorApi(410, 'Нет пользователей с таким ID')
-        }
-    }
-
-    async saveResume(data, id){
-        try{
-            const photoName = uuid.v4() + data.photo
-            const conn = await db.connectionPromise()
-            const [vacancy] = await conn.query(`SELECT photo FROM resumes WHERE id = "${id}"`)
-
-            if(vacancy.length > 0){
-                fs.unlink('photoes/' + vacancy[0].photo, ()=>{})
-                await conn.query(`UPDATE users SET resume = "true" WHERE id ="${id}"`)
-                await conn.query(`UPDATE resumes SET position = "${data.position}", FIO = "${data.FIO}",
-                born = "${data.born}", city = "${data.city}", contacts = "${data.contacts}", 
-                experience = "${data.experience}", education = "${data.education}", languages = "${data.languages}",  
-                skills = "${data.skills}", description = "${data.description}", photo = "${photoName}" WHERE id = "${id}"`)
-                return {
-                    photoName: photoName
-                }
-            }
-            await conn.query(`UPDATE users SET resume = "true" WHERE id ="${id}"`)
-            await conn.query(`INSERT INTO resumes (position, FIO, born, city, contacts, experience, education, 
-                languages, skills, description, photo, id) VALUES("${data.position}", "${data.FIO}", 
-                "${data.born}", "${data.city}", "${data.contacts}", "${data.experience}", "${data.education}", "${data.languages}", 
-                "${data.skills}", "${data.description}", "${photoName}", "${id}")`)
-            return {
-                photoName: photoName
-            }
-        }catch(err){
-            console.log(err)
-            throw new ErrorApi(500, 'Ошибка сервера')
-        }
-        
     }
 
 }

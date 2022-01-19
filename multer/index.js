@@ -8,7 +8,7 @@ class Multer{
               cb(null, 'photoes')
             },
             filename: function (req, file, cb) {
-              const photoName = req.headers['photoname']
+              const photoName = file.originalname
               req.photoName = photoName
               cb(null, photoName)
             }

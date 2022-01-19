@@ -34,6 +34,22 @@ class Token{
         return null
     }
 
+    async checkTokensId(refreshToken, accessToken){
+
+        jwt.verify(refreshToken, process.env.SECRET, (err, docs)=>{
+            if(err) return ['accessToken', null]
+
+            const accessTokenId = docs.id
+            jwt.verify(accessToken, process.env.SECRET, (err, docs)=>{
+                if(err) return ['refreshToken', null]
+
+                const refreshTokenId = docs.id
+                const result = (refreshTokenId == accessTokenId)
+                return [null, result]
+            })
+        })
+    }
+
 }
 
 module.exports = new Token()
