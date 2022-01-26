@@ -53,6 +53,18 @@ class Vacancy{
         }
     }
 
+    async getSome(req, res){
+        const data = req.data
+        try{
+            const result = await VacancyService.getSome(data.index, data.filters)
+            res.send({...result,
+                accessToken: req.accessToken, 
+                refreshToken: req.refreshToken})
+        }catch(err){
+            res.status(err.status).send(err.text)
+        }
+    }
+
 }
 
 module.exports = new Vacancy()

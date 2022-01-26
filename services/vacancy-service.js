@@ -115,6 +115,16 @@ class VacancyService{
         }
     }
 
+    async getSome(index, filters){
+        try{
+            const conn = await db.connectionPromise()
+            
+        }catch(err){
+            console.log(err)
+            throw new ErrorApi(500, 'Ошибка сервера')
+        }
+    }
+
 }
 
 module.exports = new VacancyService()

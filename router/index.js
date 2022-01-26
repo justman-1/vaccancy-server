@@ -23,5 +23,6 @@ router.post('/saveVacancy', Auth.checkTokens, Validator.validateVacancy, Vacancy
 router.post('/changeVacancy', Auth.checkTokens, Validator.validateVacancy, Vacancy.change)
 router.get('/getVacancy', Vacancy.get)
 router.post('/deleteVacancy', Auth.checkTokens, Vacancy.delete)
+router.get('/getVacancy', Validator.validateVacanciesGet, Vacancy.getSome)
 
 module.exports = router

@@ -71,6 +71,24 @@ class Validator{
         }
     }
 
+    validateVacanciesGet(req, res, next){
+        if(req.query != undefined && req.query != null && JSON.stringify(req.query) != '{}'){
+            const data = req.query
+            if(data.index && data.filters) req.data = data
+            else res.status(410).send('Данные не передались')
+        }
+        else if(req.body != undefined && req.body != null && JSON.stringify(req.body) != '{}'){
+            const data = req.body
+            if(data.index && data.filters) req.data = data
+            else res.status(410).send('Данные не передались')
+        }
+        else{
+            console.log(req.body)
+            console.log(req.query)
+            res.status(410).send('Данные не передались')
+        }
+    }
+
     #validateFunc(req, res, next, data){
         var err = null
         for(let prop in data){
