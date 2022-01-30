@@ -46,9 +46,7 @@ class VacancyService{
     async get(id){
         try{
             const conn = await db.connectionPromise()
-            console.log(id)
             const [vacancies] = await conn.query(`SELECT * FROM vacancies WHERE id = "${id}"`)
-            console.log(vacancies)
             vacancies[0].coords = JSON.parse(vacancies[0].coordinates)
             if(vacancies.length != 0) return { data: vacancies[0] }
         }catch(err){
@@ -115,10 +113,18 @@ class VacancyService{
         }
     }
 
-    async getSome(index, filters){
-        try{
+    async getSome(index, filters, date){                                 
+        try{               
             const conn = await db.connectionPromise()
-            
+            var filtersSql = ''
+            if(filters){
+                filters.forEach((e, i)=>{
+                    filtersSql = filtersSql + 'city = ' + `"${e}"` + ` AND date < "${date}"` + `${(i == filters.length - 1) ? '' : ' OR '}`
+                })
+            }
+            var sql = (filtersSql != '') ? `SELECT * FROM vacancies WHERE ${filtersSql} LIMIT 10` : `SELECT * FROM vacancies WHERE date < "${date}" LIMIT 10`
+            const [data] = await conn.query(sql)
+            return data
         }catch(err){
             console.log(err)
             throw new ErrorApi(500, 'Ошибка сервера')
