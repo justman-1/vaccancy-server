@@ -5,8 +5,8 @@ const random = require('random-string-generator')
 const key = process.env.SECRET
 const hash = require('./crypto')
 const ErrorApi = require('./error-service')
-const TokenService = require('./token-service')
 const CacheService = require('./cache-service')
+const TokenService = require('./token-service')
 const uuid = require('uuid')
 
 class VacancyService{
@@ -43,12 +43,27 @@ class VacancyService{
         }
     }
 
-    async get(id){
+    async get(id, refreshToken){
         try{
             const conn = await db.connectionPromise()
+            var userId = null
+            var yours = false
+            if(refreshToken){
+                jwt.verify(refreshToken, process.env.SECRET, (err, docs)=>{
+                    if(docs){
+                        userId = docs.id
+                    }
+                })
+            }
+            if(userId){
+                const [userId2] = await conn.query(`SELECT id FROM users WHERE vacancies LIKE "%${id}%"`)
+                if(userId == userId2[0].id){
+                    yours = true
+                }
+            }
             const [vacancies] = await conn.query(`SELECT * FROM vacancies WHERE id = "${id}"`)
             vacancies[0].coords = JSON.parse(vacancies[0].coordinates)
-            if(vacancies.length != 0) return { data: vacancies[0] }
+            if(vacancies.length != 0) return { data: vacancies[0], yours: yours }
         }catch(err){
             console.log(err)
             throw new ErrorApi(500, 'Ошибка сервера')
@@ -113,16 +128,42 @@ class VacancyService{
         }
     }
 
-    async getSome(index, filters, date){                                 
+    async getSome(index, filters, request, date){                                 
         try{               
             const conn = await db.connectionPromise()
-            var filtersSql = ''
+            var preSql = ''
             if(filters){
                 filters.forEach((e, i)=>{
-                    filtersSql = filtersSql + 'city = ' + `"${e}"` + ` AND date < "${date}"` + `${(i == filters.length - 1) ? '' : ' OR '}`
+                    if(request){
+                        const tags = request.split(' ')
+                        for(let i=0;i<tags.length;i++){
+                            if(tags[i] == ''){
+                                tags.splice(i, 1)
+                                i--
+                            }
+                        }
+                        for(let a=0;a<tags.length;a++){
+                            preSql += `position LIKE '%${tags[a]}%' AND date < "${date}" AND city = "${e}" ${(a != tags.length - 1 || i != filters.length - 1) ? 'OR ' : ''}`
+                        }
+                    }
+                    else{
+                        preSql = filtersSql + 'city = ' + `"${e}"` + ` AND date < "${date}"` + `${(i == filters.length - 1) ? '' : ' OR '}`
+                    }
                 })
             }
-            var sql = (filtersSql != '') ? `SELECT * FROM vacancies WHERE ${filtersSql} LIMIT 10` : `SELECT * FROM vacancies WHERE date < "${date}" LIMIT 10`
+            else if(request){
+                const tags = request.split(' ')
+                for(let i=0;i<tags.length;i++){
+                    if(tags[i] == ''){
+                        tags.splice(i, 1)
+                        i--
+                    }
+                }
+                for(let i=0;i<tags.length;i++){
+                    preSql += `position LIKE '%${tags[i]}%' AND date < "${date}" ${(i != tags.length - 1) ? 'OR ' : ''}`
+                }
+            }
+            var sql = `SELECT * FROM vacancies WHERE ${preSql} LIMIT 10` 
             const [data] = await conn.query(sql)
             return data
         }catch(err){

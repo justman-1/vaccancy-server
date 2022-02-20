@@ -17,8 +17,9 @@ class Vacancy{
 
     async get(req, res){
         const id = req.query.id
+        const refreshToken = req.headers['refresh_token']
         try{
-            const result = await VacancyService.get(id)
+            const result = await VacancyService.get(id, refreshToken)
             res.send({...result,
                 accessToken: req.accessToken, 
                 refreshToken: req.refreshToken})
@@ -56,7 +57,7 @@ class Vacancy{
     async getSome(req, res){
         const data = req.data
         try{
-            const result = await VacancyService.getSome(data.index, data.filters, data.date)
+            const result = await VacancyService.getSome(data.index, data.filters, data.request, data.date)
             res.send(result)
         }catch(err){
             console.log(err)
